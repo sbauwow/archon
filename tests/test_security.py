@@ -44,3 +44,15 @@ def test_hiddenlayer_falls_back_to_patterns_on_api_error():
 def test_build_scanner_from_env():
     assert isinstance(build_scanner_from_env({}), PatternScanner)
     assert isinstance(build_scanner_from_env({"HIDDENLAYER_API_KEY": "k"}), HiddenLayerScanner)
+
+
+def test_build_scanner_from_env_uses_hiddenlayer_endpoint_override():
+    scanner = build_scanner_from_env(
+        {
+            "HIDDENLAYER_API_KEY": "k",
+            "HIDDENLAYER_ENDPOINT": "https://runtime.hiddenlayer.example/v1/scan",
+        }
+    )
+
+    assert isinstance(scanner, HiddenLayerScanner)
+    assert scanner.endpoint == "https://runtime.hiddenlayer.example/v1/scan"

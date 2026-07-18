@@ -104,5 +104,8 @@ def build_scanner_from_env(env: dict[str, str] | None = None) -> Scanner:
     env = env if env is not None else dict(os.environ)
     key = env.get("HIDDENLAYER_API_KEY", "")
     if key:
-        return HiddenLayerScanner(api_key=key)
+        return HiddenLayerScanner(
+            api_key=key,
+            endpoint=env.get("HIDDENLAYER_ENDPOINT", HiddenLayerScanner.endpoint),
+        )
     return PatternScanner()

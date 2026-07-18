@@ -130,7 +130,7 @@ archon-cold, and archon-warm; the only win condition is fewer deploy-measure-adj
 from persisted calibration on the held-out app.
 Sponsor wiring is real but stub-backed by default — each flips live via env vars
 (`.env.example`): Nemotron-on-vLLM architect brain (guided JSON), Anthropic escalation,
-HiddenLayer intent+action screening, OpenShell deploy-command containment
+HiddenLayer intent+action screening (`HIDDENLAYER_API_KEY`, optional `HIDDENLAYER_ENDPOINT`), OpenShell deploy-command containment
 (`policies/deploy.openshell.yaml`), Supabase calibration persistence, LocalStack
 deploy seam (`awslocal` through the sandbox; live measurement is the next phase). The core reframe — **compete on measured ground truth and memory, not on smarts Opus already has** — is what makes this defensible against "just ask Opus."
 
