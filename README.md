@@ -120,11 +120,14 @@ The cross-platform wiring *and its measured behavior under load* are the archite
 
 ## Status
 
-**POC built (2026-07-18):** `archon/` package + `tests/` (46 green, offline) + `scripts/poc_all_sponsors.py`.
+**POC built (2026-07-18):** `archon/` package + `tests/` (49 green, offline) + `scripts/poc_all_sponsors.py`.
 The POC proves the loop end-to-end against a `SimulatedCloud` with hidden env truth
 (real capacity 0.6× documented, bill 1.7× list, +40ms overhead, broad-IAM denied):
 cold run converges in 3 iterations, warm run lands first try, calibration transfers
 to a held-out app shape (2 vs 4 iterations), poisoned intent blocked before any deploy.
+The POC now prints the honest **three-arm existence test**: looped-Opus/stateless baseline,
+archon-cold, and archon-warm; the only win condition is fewer deploy-measure-adjust cycles
+from persisted calibration on the held-out app.
 Sponsor wiring is real but stub-backed by default — each flips live via env vars
 (`.env.example`): Nemotron-on-vLLM architect brain (guided JSON), Anthropic escalation,
 HiddenLayer intent+action screening, OpenShell deploy-command containment

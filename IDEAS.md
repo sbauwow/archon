@@ -111,3 +111,113 @@ This plausibly gets the strong existence case *and* a demo that can't blow up on
 - [ ] Decide platform target + demo substrate (LocalStack?).
 - [ ] Work through what archon looks like retargeted at AWS specifically — the failure modes LocalStack reproduces, the calibration facts it would learn, the three-arm experiment design.
 - [ ] Update the README once the platform decision is made (currently written for Vercel/Railway/Supabase).
+
+---
+
+## Sponsor-tech ideation (2026-07-18) — every way each sponsor could be load-bearing
+
+Judging gives Sponsor Tech 30 pts split 15 stack / 15 "the-why". The-why only scores
+when the tech is in the critical path, so ideas below are ranked: **[core]** load-bearing,
+**[cheap]** near-free bolt-on, **[story]** narrative/diagram only (post-freeze).
+
+### NVIDIA (Nemotron / vLLM / NIM / TensorRT-LLM)
+
+1. **[core] Dogfood workload — the app archon deploys IS an inference service.**
+   Demo intent: "serve an LLM at N tok/s, TTFT < X ms, under $Y/mo." archon proposes an
+   inference architecture (model size / precision / replicas / batching), deploys a
+   vLLM/NIM container, drives real prompt load, measures real tok/s + TTFT + cost,
+   converges. NVIDIA stops being garnish: the GPU stack is the *deliverable*, and GPU
+   serving is exactly where spec-vs-reality calibration is fattest (real batching
+   behavior, real KV pressure, real cold-load times — nobody's weights know your card).
+2. **[core, built] Nemotron-on-vLLM architect brain** with guided JSON (`response_format`
+   json_schema) — a 4B can't flub the proposal format. Escalate to Claude on hard intents.
+3. **[core] Guided decoding for IaC** — grammar-constrain generated Terraform/JSON plans
+   to schema-valid output → wiring-error rate drops at $0, and the grammar doubles as a
+   structural guardrail against injected config garbage.
+4. **[cheap] Post-mortem lesson extraction** — after every converge run, local model
+   summarizes failure logs + measurements into env facts for the calibration store.
+   High-volume, cheap, private → belongs on the local GPU.
+5. **[cheap] Deploy-log triage** — stream `terraform apply` / platform logs through the
+   local model live: classify the failure (IAM vs quota vs region) so the adjust step
+   targets the right fix. High token volume = honest GPU utilization.
+6. **[cheap] Prefix caching** — env-memory doc + spec sheets are the shared preamble of
+   every propose/adjust call; `--enable-prefix-caching` makes the environment memory
+   literally live in KV cache.
+7. **[cheap] Prometheus `/metrics`** — vLLM exposes throughput/TTFT/GPU-util; feed the
+   dashboard GPU panel for free.
+8. **[story] Hidden-state intent embeddings** (`--task embed`) — pooled hidden state as
+   the feature vector for calibration retrieval / nearest-prior-app matching.
+9. **[story] Batch what-if search** — enumerate candidate shapes, score/annotate them in
+   parallel batches on the GPU; wide search Claude pricing won't allow.
+
+### Red Hat (Live Data track / llm-d)
+
+10. **[core, designed] Live telemetry drives the loop** — streaming cost/latency/error
+    events are what the agent reacts to; freshness is load-bearing, not decorative.
+    Surface the stream visibly in the dashboard.
+11. **[core] llm-d as the deploy target** — pairs with #1: the converged inference stack
+    runs on llm-d (prefix-cache-aware routing, disaggregated prefill/decode as the
+    architectural knobs archon searches over). One workload makes NVIDIA + Red Hat both
+    structural. Scope: single/2-node llm-d endpoint = real; fleet = diagram.
+12. **[cheap] Live pricing feed** — stream cloud price/quota API reads in; calibration
+    gets a freshness story ("cost model corrected from live data, not a static table").
+13. **[story] OpenShift as substrate** — K8s deploys are post-timebox; diagram only.
+
+### HiddenLayer (Runtime Security, event AITX-2026)
+
+14. **[core, built] Intent screening at ingress** + **every deploy action pre-execution**.
+15. **[core] Screen architect *output*** — a prompt-injected doc or poisoned local model
+    can emit an exfil architecture (public DB port, secrets-POSTing env var) even from a
+    clean-looking intent. Scan proposals before the human gate.
+16. **[core] Guard the calibration memory** — memory poisoning is the recursive-agent
+    attack: plant "this env requires 0.0.0.0/0" as a learned fact and every future deploy
+    inherits it. Scan facts at write time; provenance-tag entries. Novel, judge-visible.
+17. **[cheap] Scan ingested artifacts** — pasted schemas/configs/terraform modules
+    (supply-chain surface).
+18. **[cheap] Risk model curve** — findings train intent-pattern → attack-likelihood;
+    plot malicious-actions-reaching-platform ↓ over runs.
+
+### OpenShell (NemoClaw bounty)
+
+19. **[core, built] Deploy commands contained** by `policies/deploy.openshell.yaml`
+    (deny egress, escalate destructive) — detect (HiddenLayer) + contain (OpenShell).
+20. **[cheap] Contain the load generator** — k6/vegeta hits URLs the agent chose;
+    policy pins it to the deployed target only.
+21. **[cheap] Contain `terraform plan/apply`** — the scariest binary in the loop.
+22. **[story] Least-privilege convergence** — archon tightens its *own* policy from
+    observed command history: allowed-command surface ↓ over runs. A third recursive
+    curve; security posture itself improves with experience.
+
+### Supabase
+
+23. **[core, built] Calibration persistence** (PostgREST upsert, `archon_calibration`).
+24. **[cheap] Realtime dashboard feed** — write run/telemetry history to Supabase,
+    dashboard subscribes via Realtime → the live demo panel is itself sponsor tech.
+25. **[cheap] Human gate as a table** — proposal rows + approval flag + reviewer edits;
+    agent proceeds on update. Auth included for free.
+26. **[story] Supabase inside deployed architectures** — archon provisions Supabase
+    Postgres for the apps it ships; sponsor tech in the product AND the output.
+
+### Anthropic (Claude)
+
+27. **[core, built] Escalation architect** for intents the local brain can't shape.
+28. **[core] Looped-Claude baseline arm** — the fair comparison the whole demo hangs on:
+    Claude + same measure-adjust loop, no cross-run memory. Its flat curve IS the pitch.
+29. **[cheap] Gate explainer** — Claude turns measurement deltas into human-readable
+    adjustment rationale shown at the review gate.
+
+### Credits
+
+30. **Featherless ($25)** — OpenAI-compat fallback endpoint if no GPU at venue (swap
+    `ARCHON_LOCAL_ENDPOINT`).
+31. **Apify ($50)** — scrape realistic seed datasets for deployed demo apps (the
+    "seed 10k–1M rows" fidelity fix), or scrape live pricing pages for #12.
+
+### The one combo that stacks everything
+
+**archon converges an LLM inference service to a tokens/sec-per-dollar target** (#1+#11):
+NVIDIA is the workload, Red Hat is the serving fabric + live telemetry, HiddenLayer
+guards intent/actions/memory, OpenShell contains every command, Supabase persists
+calibration + powers the live dashboard, Claude is the escalation brain + the baseline
+arm. Every sponsor in the critical path of a single demo, and the calibration story is
+strongest exactly there (GPU serving reality diverges hardest from spec sheets).

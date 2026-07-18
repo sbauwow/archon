@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from archon.agent import ArchonAgent
 from archon.cloud import SimulatedCloud, _null_runner
+from archon.experiment import run_three_arm_experiment, summarize_experiment
 from archon.llm import build_architect_from_env
 from archon.memory import CalibrationStore, build_store_from_env
 from archon.sandbox import DEFAULT_POLICY, DirectSandbox, OpenShellSandbox, Sandbox
@@ -119,6 +120,15 @@ def main() -> None:
     warm_agent = build_agent(warm_store, env)
     for intent in APPS:
         run_app(warm_agent, intent)
+    print()
+
+    print("=== Three-arm existence test (held-out app) ===")
+    report = run_three_arm_experiment(
+        seed_intents=[APPS[0]],
+        held_out_intents=[APPS[1]],
+        state_dir=Path(state_path).parent,
+    )
+    print(summarize_experiment(report))
     print()
 
     print("=== Security gate (poisoned intent) ===")
