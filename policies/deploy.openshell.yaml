@@ -1,0 +1,41 @@
+# OpenShell containment policy for archon deploy commands.
+# Pairs with HiddenLayer screening: HiddenLayer detects malicious deploy
+# actions, OpenShell contains whatever slips through — defense in depth
+# around an agent holding real platform credentials.
+version: 1
+name: archon-deploy
+default: deny
+
+filesystem:
+  # Deploy tooling may only touch its own workdir and generated configs.
+  allow:
+    - path: "./"
+      mode: read-write
+  deny:
+    - path: "~/.ssh"
+    - path: "~/.aws/credentials"
+    - path: "~/.config"
+
+network:
+  # Only the deploy substrates; no arbitrary egress (exfil channel).
+  allow:
+    - host: "localhost"
+      ports: [4566]          # LocalStack
+    - host: "*.supabase.co"
+      ports: [443]
+    - host: "api.hiddenlayer.ai"
+      ports: [443]
+  default: deny
+
+commands:
+  allow:
+    - "awslocal *"
+    - "aws --endpoint-url=http://localhost:4566 *"
+  escalate:                   # destructive ops need a human at the gate
+    - "* delete *"
+    - "* terminate *"
+    - "* rm *"
+  deny:
+    - "curl *"
+    - "wget *"
+    - "ssh *"
